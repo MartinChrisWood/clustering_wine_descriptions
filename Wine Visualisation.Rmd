@@ -1,0 +1,39 @@
+---
+title: "How Many Wines are there Really?  A Visualisation"
+author: "Martin Wood"
+date: "9 March 2019"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(ggplot2)
+library(kohonen)
+
+setwd("/mnt/store/Projects/clustering_wines")
+
+```
+
+## What data?  Exploration
+
+We have a bunch of data, what's it like?
+
+```{r loading}
+# Load the previously assigned topic distributions
+topics <- read.csv("doc_topic_distributions.csv")
+
+# Load the original metadata on wines
+wine_df <- read.csv("./data/wine-reviews/winemag-data-130k-v2.csv")
+
+# Merge the two, drop the original frames to save memory (tiny laptop!)
+dat <- merge(topics, wine_df, by="title")
+drop(topics)
+drop(wine_df)
+```
+
+## Plot the topic space (SOM's)
+
+
+## Plot the source (World map!)
