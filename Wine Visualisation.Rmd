@@ -10,28 +10,96 @@ knitr::opts_chunk$set(echo = TRUE)
 
 library(tidyverse)
 library(ggplot2)
-library(kohonen)
+library(kohonen)       # Functions for Self-Organising Maps
+library(visdat)        # For visualisations useful for initial exploration (eg; missingness)
 
 setwd("/mnt/store/Projects/clustering_wines")
 
 ```
 
-## What data?  Exploration
+## Data Preparation
 
 We have a bunch of data, what's it like?
 
 ```{r loading}
-# Load the previously assigned topic distributions
-topics <- read.csv("doc_topic_distributions.csv")
-
 # Load the original metadata on wines
-wine_df <- read.csv("./data/wine-reviews/winemag-data-130k-v2.csv")
+wine_df <- read.csv("wine_reviews_with_topic_distributions.csv")
 
-# Merge the two, drop the original frames to save memory (tiny laptop!)
-dat <- merge(topics, wine_df, by="title")
-drop(topics)
-drop(wine_df)
+# Drop the topics which we know to be "duds" from exploration in Python ()
+wine_df <- subset(wine_df, select = -c(X0, X1, X9))
 ```
+
+
+```{r assign_topic}
+# Quick utility function; returns index of max-valued element of vector/matrix
+max_index <- function(x) {
+  which(x==max(x))
+}
+
+# Quickly iterate over and assign each wine to the topic with highest probability for that document!
+wine_df['topics'] <- as.factor(apply(wine_df[,18:25], 1, max_index))
+
+# Record for each wine its topic probability for that highest probability wine, for my own convenience later
+wine_df['topic_certainty'] <- apply(wine_df[,18:25], 1, max)
+```
+
+
+## Data Exploration
+
+### Looking at frequencies of countries
+
+Looking at the frequency of the countries, the US rather dominates!  We're going to assume the wine magazine's reporters were really thorough, and their ratios are reflective of the world of wine at large - because background research is a bit too much to bother with when I can just make pretty visualisations.
+
+There's a small number (71) of wines without assigned countries.  Since this is significantly fewer wines than make up the membership of even the smallest cluster we shall simply ignore their.  They shouldn't impact any of the planned visualisations and I'd like to retain their topic information for SOM generation.
+
+```{r explore_countries}
+# Calculate some stats on the number of wines from different countries
+priors <- data.frame(table(wine_df['country']))
+priors['frac'] <- priors['Freq'] / sum(priors['Freq'])
+priors <- priors[order(-priors$frac),]
+
+colnames(priors) <- c("country", "freq", "frac")
+head(priors)
+```
+
+
+### Looking at topics versus countries
+
+It's visually apparent that different topics have different distributions over the countries of origin of their wines.  This lends some credence to the methodology, you'd expect them to be different but with a lot of overlap and noise due to the overall dependence on local climate and soil types.
+
+We can also determine the country that most closely relates to a given topic by looking at the most frequent country of origin (weighted by prior odds - some countries just produce lots of wines and if you don't do this the US dominates!).
+```{r explore_topics}
+# What's the relative membership of topics?
+summary(wine_df['topics'])
+summary(wine_df['country'])
+ggplot(data=wine_df, aes(x=topics, fill=country)) + geom_bar()
+```
+
+```{r dominant_country}
+# For each cluster, what's the dominant country of origin?
+
+wines_count <- wine_df %>% count(country, topics)
+
+wines_count <- wines_count %>% merge(priors, by="country")
+wines_count['weighted_n'] <- wines_count['n'] / wines_count['frac']
+
+# drop any country with < 1000 wines to its name because it messes with the stats!
+wines_count <- wines_count[wines_count['freq'] >=1000, ]
+wines_count %>% group_by(topics) %>% top_n(1, weighted_n) -> topic_dominant_country
+
+topic_dominant_country
+```
+
+### Looking at the wines
+
+What's the most representative wine for a given topic?  Simply find the wine with the highest probability of belonging to that topic.  These are the archetypes, those most similar to all other wines in a group and therefore the wines to try if you want to sample something truly representative!
+
+```{r dominant_wine}
+# What's the most representative single wine for each topic, that for which the topic probability is highest?
+wine_df %>% group_by(topics) %>% top_n(1, topic_certainty) -> wine_archetypes
+wine_archetypes[,c("topics", "country", "title")]
+```
+
 
 ## Plot the topic space (SOM's)
 
