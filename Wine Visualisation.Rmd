@@ -105,5 +105,47 @@ wine_archetypes[,c("topics", "country", "title")]
 
 ## Plot the topic space (SOM's)
 
+To do this we first iteratively fit a 24 * 24 grid (total 480 nodes!) to the high dimensional data, then use the grid as a new lower-dimensional coordinate system against which to locate data.
 
+```{r create_SOM}
+# Define the grid system
+som_grid <- somgrid(xdim=30, ydim=30, topo="hexagonal")
+
+# Fit the model (remember, takes vectors or matrices!)
+wine_som <- som(as.matrix(wine_df[,18:25]), grid=som_grid, rlen=100, alpha=c(0.05, 0.01))
+```
+
+```{r visualise_SOM}
+plot(wine_som)
+```
+
+
+```{r get_SOM_data}
+# SOM Coordinates for greating my own prettier plot!
+som_coords <- data.frame(wine_som$codes)
+som_coords["x"] <- wine_som$grid$pts[,1]
+som_coords["y"] <- wine_som$grid$pts[,2]
+
+# Once again, assign by maximum probability
+som_coords['topics'] <- as.factor(apply(som_coords[,1:8], 1, max_index))
+som_coords['topic_conf'] <- apply(som_coords[,1:8], 1, max)
+
+# Finally, for each topic we need to find its x/y medioid (rather than mean, there are distant outliers)
+som_coords %>% group_by(topics) %>% summarize(med_x = median(x), med_y = median(y)) -> som_medioids
+```
+
+```{r plot_SOM_data}
+# Create the base plot/colors
+som_map <- ggplot(data=som_coords, aes(x=x, y=y, color=topics, size=topic_conf, alpha=topic_conf)) + 
+  geom_point() +
+  geom_point(data=som_medioids, aes(x=med_x, y=med_y, alpha=1), inherit.aes=FALSE) + 
+  theme_classic() + 
+  theme(legend.position="none")
+  
+som_map
+```
+
+
+  annotate("text", x=as.vector(som_medioids["med_x"]), y=as.vector(som_medioids["med_y"]), label="X")
+```
 ## Plot the source (World map!)
