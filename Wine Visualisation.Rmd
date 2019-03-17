@@ -11,9 +11,10 @@ output:
 knitr::opts_chunk$set(echo = TRUE)
 
 library(tidyverse)
-library(ggplot2)
 library(kohonen)       # Functions for Self-Organising Maps
 library(visdat)        # For visualisations useful for initial exploration (eg; missingness)
+library(ggplot2)
+library(reshape2)
 
 setwd("/mnt/store/Projects/clustering_wine_descriptions")
 
@@ -61,7 +62,7 @@ priors['frac'] <- priors['Freq'] / sum(priors['Freq'])
 priors <- priors[order(-priors$frac),]
 
 colnames(priors) <- c("country", "freq", "frac")
-head(priors)
+priors
 ```
 
 
@@ -119,6 +120,9 @@ wine_som <- som(as.matrix(wine_df[,18:25]), grid=som_grid, rlen=100, alpha=c(0.0
 plot(wine_som)
 ```
 
+## Get the Keyword Labels
+
+Before we can plot the flavourmap, we need the labels for the centres of the 2D clusters, so we calculate the median points (more robust than mean to outliers, x and y medians calculated separately).  Then we import the top 10 keywords from the LDA model and join them ready for plotting.
 
 ```{r get_SOM_data}
 # SOM Coordinates for greating my own prettier plot!
@@ -134,18 +138,55 @@ som_coords['topic_conf'] <- apply(som_coords[,1:8], 1, max)
 som_coords %>% group_by(topics) %>% summarize(med_x = median(x), med_y = median(y)) -> som_medioids
 ```
 
+```{r get_topic_word_dists}
+word_dist_df <- read.csv("./data/topic_word_dist_10.csv")
+
+# Drop the topics we're excluding
+word_dist_df <- word_dist_df[-c(1, 2, 10),]
+
+# Add the keyword information to the medioids dataframe
+som_medioids['keywords'] <- word_dist_df['keywords']
+som_medioids
+```
+
 ```{r plot_SOM_data}
 # Create the base plot/colors
-som_map <- ggplot(data=som_coords, aes(x=x, y=y, color=topics, size=topic_conf, alpha=topic_conf)) + 
-  geom_point() +
-  geom_point(data=som_medioids, aes(x=med_x, y=med_y, alpha=1), inherit.aes=FALSE) + 
-  theme_classic() + 
-  theme(legend.position="none")
-  
+som_map <- ggplot(data=som_coords, aes(x=x, y=y, color=topics, fill=topics, size=topic_conf, alpha=topic_conf)) + 
+  geom_point(pch=21, stroke=3) +
+  labs(x="Dry to Sweet", y="Fruity to Aged", size="Topic Strength") +
+  scale_fill_brewer(palette="Set1") +
+  scale_color_brewer(palette="Set1") +
+  geom_label(data=som_medioids, aes(x=med_x, y=med_y, alpha=1, label=stringr::str_wrap(keywords, 5)), inherit.aes=FALSE) +
+  theme_minimal() + 
+  guides(alpha=FALSE)
+
 som_map
 ```
 
+## Plot wine-topic profiles by country
 
-  annotate("text", x=as.vector(som_medioids["med_x"]), y=as.vector(som_medioids["med_y"]), label="X")
+```{r prep_topic_profiles}
+# The first thing we need to do is reshape the dataframe to get the topics into long form
+wine_df_long <- wine_df[,c("country", "description", "title", "X2", "X3", "X4", "X5", "X6", "X7", "X8", "X10")]
+wine_df_long <- melt(wine_df_long, id=c("country", "description", "title"))
+head(wine_df_long)
 ```
-## Plot the source (World map!)
+
+```{r plot_profiles}
+# Note;  I should probably limit this later to countries with > 1000 wines!
+subset <- wine_df_long[wine_df_long["country"]=="US",]
+ggplot(subset, aes(x=variable, y=value)) + geom_boxplot()
+```
+
+
+```{r plot_profiles}
+# Note;  I should probably limit this later to countries with > 1000 wines!
+subset <- wine_df_long[wine_df_long["country"]=="Chile",]
+ggplot(subset, aes(x=variable, y=value)) + geom_boxplot()
+```
+
+```{r plot_profiles}
+# Note;  I should probably limit this later to countries with > 1000 wines!
+subset <- wine_df_long[wine_df_long["country"]=="France",]
+ggplot(subset, aes(x=variable, y=value, alpha=0.01)) + geom_boxplot()
+```
