@@ -30,6 +30,12 @@ wine_df <- read.csv("./data/wine_reviews_with_topic_distributions.csv")
 
 # Drop the topics which we know to be "duds" from exploration in Python ()
 wine_df <- subset(wine_df, select = -c(X0, X1, X9))
+
+# Load the topic word distributions
+word_dist_df <- read.csv("./data/topic_word_dist_10.csv")
+
+# Drop the topics we're excluding
+word_dist_df <- word_dist_df[-c(1, 2, 10),]
 ```
 
 
@@ -131,21 +137,23 @@ som_coords["x"] <- wine_som$grid$pts[,1]
 som_coords["y"] <- wine_som$grid$pts[,2]
 
 # Once again, assign by maximum probability
-som_coords['topics'] <- as.factor(apply(som_coords[,1:8], 1, max_index))
+som_coords['topics'] <- as.factor(colnames(som_coords)[apply(som_coords[,1:8], 1, max_index)])
 som_coords['topic_conf'] <- apply(som_coords[,1:8], 1, max)
 
+# Convert to tibble, because tibbles and df's order factors differently!
+# as_tibble(som_coords) %>% arrange(topics) -> som_coords
+
 # Finally, for each topic we need to find its x/y medioid (rather than mean, there are distant outliers)
-som_coords %>% group_by(topics) %>% summarize(med_x = median(x), med_y = median(y)) -> som_medioids
+som_coords %>% 
+  group_by(topics) %>% 
+  summarize(med_x = median(x), med_y = median(y)) -> som_medioids
 ```
 
 ```{r get_topic_word_dists}
-word_dist_df <- read.csv("./data/topic_word_dist_10.csv")
-
-# Drop the topics we're excluding
-word_dist_df <- word_dist_df[-c(1, 2, 10),]
-
 # Add the keyword information to the medioids dataframe
 som_medioids['keywords'] <- word_dist_df['keywords']
+som_medioids['topics'] <- word_dist_df['topic']
+
 som_medioids
 ```
 
@@ -169,24 +177,36 @@ som_map
 # The first thing we need to do is reshape the dataframe to get the topics into long form
 wine_df_long <- wine_df[,c("country", "description", "title", "X2", "X3", "X4", "X5", "X6", "X7", "X8", "X10")]
 wine_df_long <- melt(wine_df_long, id=c("country", "description", "title"))
-head(wine_df_long)
+
+# Create some better data for plotting this...
+wine_df_long['counter'] <- 1.0
+wine_df_long %>% group_by(country, variable) %>% summarize(num_entries = sum(counter), topic_prob = sum(value)) -> sum_tc
+
+sum_tc <- sum_tc %>% filter(num_entries >= 1000) %>% arrange(variable)
+sum_tc['topic_prob'] <- sum_tc['topic_prob'] / sum_tc['num_entries']
+sum_tc
 ```
 
 ```{r plot_profiles}
 # Note;  I should probably limit this later to countries with > 1000 wines!
-subset <- wine_df_long[wine_df_long["country"]=="US",]
-ggplot(subset, aes(x=variable, y=value)) + geom_boxplot()
+#subset <- sum_tc[sum_tc["country"]=="Chile",]
+ggplot(sum_tc, aes(x=variable, y=topic_prob, fill=variable)) + 
+  scale_fill_brewer(palette="Set1") + 
+  geom_col() + 
+  coord_flip() + 
+  facet_wrap(vars(country)) + 
+  theme_minimal()
 ```
 
 
 ```{r plot_profiles}
 # Note;  I should probably limit this later to countries with > 1000 wines!
 subset <- wine_df_long[wine_df_long["country"]=="Chile",]
-ggplot(subset, aes(x=variable, y=value)) + geom_boxplot()
+ggplot(subset, aes(x=variable, y=value)) + geom_col()
 ```
 
 ```{r plot_profiles}
 # Note;  I should probably limit this later to countries with > 1000 wines!
 subset <- wine_df_long[wine_df_long["country"]=="France",]
-ggplot(subset, aes(x=variable, y=value, alpha=0.01)) + geom_boxplot()
+ggplot(subset, aes(x=variable, y=value)) + geom_col()
 ```
