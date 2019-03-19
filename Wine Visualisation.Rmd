@@ -126,18 +126,6 @@ wine_som <- som(as.matrix(wine_df[,18:25]), grid=som_grid, rlen=100, alpha=c(0.0
 plot(wine_som)
 ```
 
-```{r test_plot_SOM_data}
-# Create the base plot/colors
-som_map <- ggplot(data=som_coords, aes(x=x, y=y, color=topics, fill=topics, size=topic_conf, alpha=topic_conf)) + 
-  geom_point(pch=21) +
-  scale_fill_brewer(palette="Set1") +
-  scale_color_brewer(palette="Set1") +
-  theme_minimal() +
-  guides(alpha=FALSE)
-
-som_map
-```
-
 
 ## Get the Keyword Labels
 
@@ -169,6 +157,17 @@ som_medioids['keywords'] <- paste(som_medioids$topics, som_medioids$keywords)
 som_medioids
 ```
 
+```{r test_plot_SOM_data}
+# Create the base plot/colors
+som_map <- ggplot(data=som_coords, aes(x=x, y=y, color=topics, fill=topics, size=topic_conf, alpha=topic_conf)) + 
+  geom_point(pch=21) +
+  scale_fill_brewer(palette="Set1") +
+  scale_color_brewer(palette="Set1") +
+  theme_minimal() +
+  guides(alpha=FALSE)
+
+som_map
+```
 
 ```{r plot_SOM_data}
 # Create the base plot/colors
@@ -188,7 +187,7 @@ som_map <- ggplot(data=som_coords, aes(x=x, y=y, color=topics, fill=topics, size
   guides(alpha=FALSE)
 
 som_map
-ggsave("flavormap.png")
+ggsave("flavormap.png", width=12, height=7)
 ```
 
 ## Plot wine-topic profiles by country
