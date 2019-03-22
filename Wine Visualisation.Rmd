@@ -15,8 +15,12 @@ library(kohonen)       # Functions for Self-Organising Maps
 library(visdat)        # For visualisations useful for initial exploration (eg; missingness)
 library(ggplot2)
 library(reshape2)
+library(plotly)
 
 setwd("/mnt/store/Projects/clustering_wine_descriptions")
+
+# Define a color scheme to use
+vis_scheme <- "Set2"
 
 ```
 
@@ -61,6 +65,11 @@ Looking at the frequency of the countries, the US rather dominates!  We're going
 
 There's a small number (71) of wines without assigned countries.  Since this is significantly fewer wines than make up the membership of even the smallest cluster we shall simply ignore their.  They shouldn't impact any of the planned visualisations and I'd like to retain their topic information for SOM generation.
 
+```{r}
+# Missing Descriptions
+head(wine_df[order(wine_df$desc_len),c("title", "description")], n=30)
+```
+
 ```{r explore_countries}
 # Calculate some stats on the number of wines from different countries
 priors <- data.frame(table(wine_df['country']))
@@ -77,6 +86,7 @@ priors
 It's visually apparent that different topics have different distributions over the countries of origin of their wines.  This lends some credence to the methodology, you'd expect them to be different but with a lot of overlap and noise due to the overall dependence on local climate and soil types.
 
 We can also determine the country that most closely relates to a given topic by looking at the most frequent country of origin (weighted by prior odds - some countries just produce lots of wines and if you don't do this the US dominates!).
+
 ```{r explore_topics}
 # What's the relative membership of topics?
 summary(wine_df['topics'])
@@ -175,8 +185,8 @@ som_map <- ggplot(data=som_coords, aes(x=x, y=y, color=topics, fill=topics, size
   geom_point(pch=21) +
   scale_size_continuous(range = c(2, 12)) +
   labs(x="Dry to Sweet", y="Fruity to Aged", size="Topic Strength") +
-  scale_fill_brewer(palette="Set1") +
-  scale_color_brewer(palette="Set1") +
+  scale_fill_brewer(palette=vis_scheme) +
+  scale_color_brewer(palette=vis_scheme) +
   geom_label(data=som_medioids, aes(x=med_x, y=med_y, alpha=1, label=stringr::str_wrap(keywords, 5)), inherit.aes=FALSE) +
   theme_minimal() + 
   theme(panel.grid.major = element_blank(),
@@ -206,7 +216,7 @@ sum_tc['topic_prob'] <- sum_tc['topic_prob'] / sum_tc['num_entries']
 
 # Change vairable to character (forces intelligent ordering), reorder
 sum_tc['topics'] <- as.character(sum_tc$variable)
-sum_tc %>% arrange(topics) -> sum_tc
+sum_tc %>% arrange(topics)-> sum_tc
 sum_tc
 ```
 
@@ -229,7 +239,7 @@ ggplot(subset, aes(x=variable, y=value)) + geom_col()
 ```{r plot_profiles_all}
 # Note:  Need to fix the ordering!
 ggplot(sum_tc, aes(x=topics, y=topic_prob, fill=topics)) + 
-  scale_fill_brewer(palette="Set1") + 
+  scale_fill_brewer(palette=vis_scheme) + 
   labs(x="Topic", y="Topic Probability", fill = "Topics") +
   geom_col() + 
   coord_flip() + 
