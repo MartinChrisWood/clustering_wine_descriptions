@@ -30,16 +30,16 @@ We have a bunch of data, what's it like?
 
 ```{r loading}
 # Load the original metadata on wines
-wine_df <- read.csv("./data/wine_reviews_with_topic_distributions.csv")
+wine_df <- read.csv("./data/wine_reviews_with_topic_distributions_clean.csv")
 
 # Drop the topics which we know to be "duds" from exploration in Python ()
-wine_df <- subset(wine_df, select = -c(X0, X1, X9))
+wine_df <- subset(wine_df, select = -c(X0, X3, X6, X7)) # -c(X0, X1, X9)) These for the older model!
 
 # Load the topic word distributions
-word_dist_df <- read.csv("./data/topic_word_dist_10.csv")
+word_dist_df <- read.csv("./data/topic_word_dist_5_clean.csv")
 
 # Drop the topics we're excluding
-word_dist_df <- word_dist_df[-c(1, 2, 10),]
+word_dist_df <- word_dist_df[-c(1, 4, 7, 8),] # word_dist_df[-c(1, 2, 10),]  These for the older model!
 ```
 
 
