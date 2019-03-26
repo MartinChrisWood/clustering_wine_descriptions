@@ -20,13 +20,11 @@ library(plotly)
 setwd("/mnt/store/Projects/clustering_wine_descriptions")
 
 # Define a color scheme to use
-vis_scheme <- "Set3"
+vis_scheme <- "YlOrRd"
 
 ```
 
 ## Data Preparation
-
-We have a bunch of data, what's it like?
 
 ```{r loading}
 # Load the original metadata on wines
@@ -58,7 +56,6 @@ max_index <- function(x) {
 # Quickly iterate over and assign each wine to the topic with highest probability for that document!
 # The conversions serve to strip uneccessary indexing information created either by the "which" function
 # or by the "apply" function.
-# THIS IS ALSO A POINT AT WHICH RE-ORDERING COULD MESS THINGS UP
 wine_df['topics'] <- as.character( apply(wine_df[,18:26], 1, max_index)  )
 
 # Filter entries that have been assigned to multiple topics - valid but unhelpful
@@ -73,9 +70,9 @@ wine_df['topic_certainty'] <- apply(wine_df[,18:26], 1, max)
 
 ### Looking at frequencies of countries
 
-Looking at the frequency of the countries, the US rather dominates!  We're going to assume the wine magazine's reporters were really thorough, and their ratios are reflective of the world of wine at large - because background research is a bit too much to bother with when I can just make pretty visualisations.
+Looking at the frequency of the countries, the US rather dominates!  We're going to assume the wine magazine's reporters were really thorough, and their ratios are reflective of the world of wine at large...
 
-There's a small number (71) of wines without assigned countries.  Since this is significantly fewer wines than make up the membership of even the smallest cluster we shall simply ignore their.  They shouldn't impact any of the planned visualisations and I'd like to retain their topic information for SOM generation.
+There's a small number (71) of wines without assigned countries.  Since this is significantly fewer wines than make up the membership of even the smallest cluster we shall simply ignore them.  They shouldn't impact any of the planned visualisations and I'd like to retain their topic information for SOM generation.
 
 ```{r}
 # Missing Descriptions
@@ -141,6 +138,7 @@ To do this we first iteratively fit a 24 * 24 grid (total 480 nodes!) to the hig
 som_grid <- somgrid(xdim=30, ydim=30, topo="hexagonal")
 
 # Fit the model (remember, takes vectors or matrices!)
+set.seed(7)
 wine_som <- som(as.matrix(wine_df[,18:26]), grid=som_grid, rlen=100, alpha=c(0.05, 0.01))
 ```
 
@@ -194,12 +192,12 @@ som_map
 ```{r plot_SOM_data}
 # Create the base plot/colors
 som_map <- ggplot(data=som_coords, aes(x=x, y=y, color=topics, fill=topics, size=topic_conf, alpha=topic_conf)) + 
-  geom_point(pch=21) +
+  geom_point(pch=22) +
   scale_size_continuous(range = c(2, 12)) +
-  labs(x="Dry to Sweet", y="Fruity to Aged", size="Topic Strength") +
+  labs(x="Sweet to Dry", y="Aged to Fruity", size="Topic Strength") +
   scale_fill_brewer(palette=vis_scheme) +
   scale_color_brewer(palette=vis_scheme) +
-  geom_label(data=som_medioids, aes(x=med_x, y=med_y, alpha=1, label=stringr::str_wrap(keywords, 5)), inherit.aes=FALSE) +
+  geom_label(data=som_medioids, aes(x=med_x, y=med_y, alpha=1, label=stringr::str_wrap(keywords, 1)), inherit.aes=FALSE) +
   theme_minimal() + 
   theme(panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
