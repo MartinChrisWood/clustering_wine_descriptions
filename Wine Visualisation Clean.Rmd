@@ -20,7 +20,7 @@ library(plotly)
 setwd("/mnt/store/Projects/clustering_wine_descriptions")
 
 # Define a color scheme to use
-vis_scheme <- "YlOrRd"
+vis_scheme <- "Paired"
 
 ```
 
@@ -169,13 +169,16 @@ som_coords['topics'] <- colnames(som_coords)[apply(som_coords[,1:9], 1, max_inde
 som_coords['topic_conf'] <- apply(som_coords[,1:9], 1, max)
 
 som_coords %>% arrange(topics) -> som_coords
+
+colnames(som_coords)[12] <- "Topics"
+colnames(som_coords)[13] <- "Confidence"
 ```
 
 ### Test plot (editorial)
 
 ```{r test_plot_SOM_data}
 # Create the base plot/colors
-som_map <- ggplot(data=som_coords, aes(x=x, y=y, color=topics, fill=topics, size=topic_conf, alpha=topic_conf)) + 
+som_map <- ggplot(data=som_coords, aes(x=x, y=y, color=Topics, fill=Topics, size=Confidence)) + 
   geom_point(pch=21) +
   scale_fill_brewer(palette="Set3") +
   scale_color_brewer(palette="Set3") +
@@ -183,6 +186,7 @@ som_map <- ggplot(data=som_coords, aes(x=x, y=y, color=topics, fill=topics, size
   guides(alpha=FALSE)
 
 som_map
+ggsave("flavormap_prototype.png", width=7, height=4.5)
 ```
 
 ### Get the Keyword Labels
@@ -192,13 +196,13 @@ Before we can plot the flavourmap, we need the labels for the centres of the 2D 
 ```{r get_topic_word_dists}
 # Finally, for each topic we need to find its x/y medioid (rather than mean, there are distant outliers)
 som_coords %>% 
-  group_by(topics) %>% 
+  group_by(Topics) %>% 
   summarize(med_x = median(x), med_y = median(y)) -> som_medioids
 
 # Add the keyword information to the medioids dataframe
-colnames(word_dist_df)[3] <- "topics"
-som_medioids %>% left_join(word_dist_df, by="topics") -> som_medioids
-som_medioids['keywords'] <- paste(som_medioids$topics, som_medioids$keywords)
+colnames(word_dist_df)[3] <- "Topics"
+som_medioids %>% left_join(word_dist_df, by="Topics") -> som_medioids
+som_medioids['Keywords'] <- paste(som_medioids$topics, som_medioids$keywords)
 som_medioids
 ```
 
@@ -206,10 +210,11 @@ som_medioids
 
 ```{r plot_SOM_data}
 # Create the base plot/colors
-som_map <- ggplot(data=som_coords, aes(x=x, y=y, color=topics, fill=topics, size=topic_conf, alpha=topic_conf)) + 
-  geom_point(pch=22) +
+som_map <- ggplot(data=som_coords, aes(x=x, y=y, color=Topics, fill=Topics, size=Confidence, alpha=Confidence)) + 
+  geom_point(pch=21) +
   scale_size_continuous(range = c(2, 12)) +
-  labs(x="Sweet to Dry", y="Aged to Fruity", size="Topic Strength") +
+  labs(x="Sweet/Full to Dry/Tart", y="Aged/Mature to Fruity/light") +
+  ggtitle("Text-Generated Map of the Fundamental Flavours of Wines\nand their Interrelations") +
   scale_fill_brewer(palette=vis_scheme) +
   scale_color_brewer(palette=vis_scheme) +
   geom_label(data=som_medioids, aes(x=med_x, y=med_y, alpha=1, label=stringr::str_wrap(keywords, 1)), inherit.aes=FALSE) +
@@ -218,7 +223,8 @@ som_map <- ggplot(data=som_coords, aes(x=x, y=y, color=topics, fill=topics, size
         panel.grid.minor = element_blank(),
         axis.text.x = element_blank(),
         axis.text.y = element_blank(),
-        axis.ticks = element_blank()) +
+        axis.ticks = element_blank(),
+        plot.title = element_text(face="bold", size=26)) +
   guides(alpha=FALSE)
 
 som_map
