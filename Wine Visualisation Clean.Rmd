@@ -19,6 +19,9 @@ library(plotly)
 
 setwd("/mnt/store/Projects/clustering_wine_descriptions")
 
+Sys.setenv("plotly_username"="OzwaldCavendish")
+Sys.setenv("plotly_api_key"="HfYHiiLNA09N3S43HiYB")
+
 # Define a color scheme to use
 vis_scheme <- "Paired"
 
@@ -231,6 +234,7 @@ gg <- ggplotly(som_map)
 
 htmlwidgets::saveWidget(widget=gg, file='flavour_map.html')
 
+api_create(gg, filename = "r-wine-flavour-map")
 #plotly.offline.plot(som_map, filename="flavour_map.html")
 #ggsave("flavormap.png", width=14, height=9)
 ```
@@ -293,6 +297,8 @@ p = ggplot(sum_tc, aes(x=topics, y=topic_prob, fill=topics)) +
 gc <- ggplotly(p)
 
 htmlwidgets::saveWidget(widget=gc, file='country_topic_dist.html')
+
+api_create(gc, filename = "r-wine-country-dist")
 #ggsave("country_topic_dist.png", width=14, height=9)
 ```
 
