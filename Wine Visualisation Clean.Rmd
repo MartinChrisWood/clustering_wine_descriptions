@@ -212,7 +212,7 @@ som_medioids
 # Create the base plot/colors
 som_map <- ggplot(data=som_coords, aes(x=x, y=y, color=Topics, fill=Topics, size=Confidence, alpha=Confidence)) + 
   geom_point(pch=21) +
-  scale_size_continuous(range = c(2, 12)) +
+  scale_size_continuous(range = c(1, 14)) +
   labs(x="Sweet/Full to Dry/Tart", y="Aged/Mature to Fruity/light") +
   ggtitle("Text-Generated Map of the Fundamental Flavours of Wines\nand their Interrelations") +
   scale_fill_brewer(palette=vis_scheme) +
@@ -227,8 +227,12 @@ som_map <- ggplot(data=som_coords, aes(x=x, y=y, color=Topics, fill=Topics, size
         plot.title = element_text(face="bold", size=26)) +
   guides(alpha=FALSE)
 
-som_map
-ggsave("flavormap.png", width=12, height=7)
+gg <- ggplotly(som_map)
+
+htmlwidgets::saveWidget(widget=gg, file='flavour_map.html')
+
+#plotly.offline.plot(som_map, filename="flavour_map.html")
+#ggsave("flavormap.png", width=14, height=9)
 ```
 
 ## Plot wine-topic profiles by country
@@ -259,27 +263,36 @@ sum_tc
 ```{r plot_profile_Chile}
 # Note;  I should probably limit this later to countries with > 1000 wines!
 subset <- wine_df_long[wine_df_long["country"]=="Chile",]
-ggplot(subset, aes(x=variable, y=value)) + geom_col()
+cp1 = ggplot(subset, aes(x=variable, y=value)) + geom_col()
+cp1
+ggsave("country_prototype_Chile.png", width=4, height=4)
 ```
 
 ```{r plot_profile_France}
 # Note;  I should probably limit this later to countries with > 1000 wines!
 subset <- wine_df_long[wine_df_long["country"]=="France",]
-ggplot(subset, aes(x=variable, y=value)) + geom_col()
+cp2 <- ggplot(subset, aes(x=variable, y=value)) + geom_col()
+cp2
+ggsave("country_prototype_France.png", width=4, height=4)
 ```
 
 ## Final developed plot!
 
 ```{r plot_profiles_all}
 # Note:  Need to fix the ordering!
-ggplot(sum_tc, aes(x=topics, y=topic_prob, fill=topics)) + 
+p = ggplot(sum_tc, aes(x=topics, y=topic_prob, fill=topics)) + 
   scale_fill_brewer(palette=vis_scheme) + 
   labs(x="Topic", y="Topic Probability", fill = "Topics") +
+  ggtitle("Different Countries' Wine Flavour Tendencies") +
   geom_col() + 
   coord_flip() + 
   facet_wrap(vars(country)) + 
-  theme_minimal()
+  theme_minimal() +
+  theme(plot.title = element_text(face="bold", size=26), legend.position="none")
 
-ggsave("country_topic_dist.png", width=12, height=7)
+gc <- ggplotly(p)
+
+htmlwidgets::saveWidget(widget=gc, file='country_topic_dist.html')
+#ggsave("country_topic_dist.png", width=14, height=9)
 ```
 
